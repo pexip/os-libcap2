@@ -1,6 +1,6 @@
 #!/bin/sh
 # Test getting and setting of capabilities using getcap(8) and setcap(8).
-# a simple test program. Assumes $ADTTMP is set, see
+# a simple test program. Assumes ADTTMP is set, see
 # /usr/share/doc/autopkgtest/README.package-tests.gz
 set -e
 
@@ -20,13 +20,18 @@ then
 	exit 1
 fi
 
+# We will mount a tmpfs within ADTTMP. This is the only way to be sure that we
+# are on a filesystem mounted without the nosuid option
+test_tmpfs="$ADTTMP/tmpfs_executables"
+
 # Make sure that we undo all our changes to the system
 cleanup_testenv() {
-	if mountpoint -q "$ADTTMP"
+	cd /
+	if mountpoint -q "$test_tmpfs"
 	then
-		cd /
-		umount "$ADTTMP"
+		umount "$test_tmpfs"
 	fi
+	rmdir "$test_tmpfs"
 }
 trap cleanup_testenv EXIT HUP INT QUIT TERM
 
@@ -35,17 +40,18 @@ trap cleanup_testenv EXIT HUP INT QUIT TERM
 # Set some names. We are modifying capabilities, so paths should be absolute.
 #########
 testuser=nobody
-testfile="$ADTTMP/testfile"
-testprog="$ADTTMP/chown_testfile"
+testfile="$test_tmpfs/testfile"
+testprog="$test_tmpfs/chown_testfile"
 testprog_src="${testprog}.c"
 
 
 #########
-# Step 1: Mount a small tmpfs on $ADTTMP. This is the only way to ensure that we
-#         are in a filesystem mounted without the nosuid option. Then, cd to it.
+# Step 1: Mount out tmpfs, and cd to it
 #########
 
-mount -t tmpfs -o size=1048576 tmpfs "$ADTTMP"
+mkdir -p "$test_tmpfs"
+mount -t tmpfs -o size=10m tmpfs "$test_tmpfs"
+cd "$tmpfs"
 
 
 #########
@@ -88,10 +94,12 @@ touch "$testfile"
 #########
 
 echo "Attempt to chown *without* CAP_CHOWN should fail:"
-if su -c "$testprog" -s /bin/sh nobody
+if su -c "$testprog" -s /bin/sh nobody 2>&1
 then
 	echo "Test file chown was successful although it shouldn't have been" >&2
 	exit 1
+else
+	echo "OK, failed"
 fi
 
 
@@ -99,21 +107,26 @@ fi
 # Step 5: Set CAP_CHOWN and ensure that our test program succeeds this time
 #########
 
-if ! setcap cap_chown+ep "$testprog"
+echo "Set CAP_CHOWN on test file:"
+if ! setcap cap_chown+ep "$testprog" 2>&1
 then
 	echo "Failed to set CAP_CHOWN on $testprog" >&2
 	exit 1
-elif ! setcap -v cap_chown+ep > /dev/null "$testprog"
+elif ! setcap -v cap_chown+ep "$testprog" 2>&1
 then
 	echo "Setting CAP_CHOWN on $testprog succeeded but verification failed" >&2
 	exit 1
+else
+	echo "OK, set"
 fi
 
 echo "Attempt to chown *with* CAP_CHOWN should succeed:"
-if ! su -c "$testprog" -s /bin/sh nobody
+if ! su -c "$testprog" -s /bin/sh nobody 2>&1
 then
 	echo "Test file chown failed although it shouldn't have" >&2
 	exit 1
+else
+	echo "OK, chown succeeded"
 fi
 
 
@@ -124,7 +137,7 @@ fi
 
 if [ `stat -c '%u:%g' "$testfile"` != "`id -u $testuser`:`id -g $testuser`" ]
 then
-	echo "chown suceeded but resuling ownership doesn't match expecations" >&2
+	echo "chown succeeded but resulting ownership doesn't match expecation" >&2
 	exit 1
 fi
 

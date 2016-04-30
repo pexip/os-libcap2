@@ -1,25 +1,25 @@
 Source: libcap2
 Section: libs
 Priority: optional
-Maintainer: Christian Kastner <debian@kvr.at>
-Standards-Version: 3.9.6
-XS-Testsuite: autopkgtest
+Maintainer: Christian Kastner <ckk@debian.org>
 Build-Depends:
- debhelper (>= 9),
- indent,
- libattr1-dev,
- libpam0g-dev,
+    debhelper (>= 9),
+    indent,
+    libpam0g-dev,
+    gperf,
+Standards-Version: 3.9.8
 Homepage: http://sites.google.com/site/fullycapable/
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/libcap2.git
-Vcs-Git: git://anonscm.debian.org/collab-maint/libcap2.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/libcap2.git
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/libcap2.git
 
 Package: libcap2-bin
 Section: utils
+Priority: important
 Architecture: linux-any
 Multi-Arch: foreign
 Depends:
- ${shlibs:Depends},
- ${misc:Depends},
+    ${shlibs:Depends},
+    ${misc:Depends},
 Breaks: libcap-bin
 Replaces: libcap-bin
 Recommends: libpam-cap
@@ -31,13 +31,13 @@ Description: POSIX 1003.1e capabilities (utilities)
  This package contains additional utilities.
 
 Package: libcap2
-Priority: standard
+Priority: important
 Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends:
- ${misc:Depends},
- ${shlibs:Depends},
+    ${misc:Depends},
+    ${shlibs:Depends},
 Description: POSIX 1003.1e capabilities (library)
  Libcap implements the user-space interfaces to the POSIX 1003.1e capabilities
  available in Linux kernels. These capabilities are a partitioning of the all
@@ -45,31 +45,14 @@ Description: POSIX 1003.1e capabilities (library)
  .
  This package contains the shared library.
 
-Package: libcap2-dbg
-Section: debug
-Priority: extra
-Architecture: linux-any
-Multi-Arch: same
-Depends:
- ${misc:Depends},
- libcap2 (= ${binary:Version}),
- libcap-dev (= ${binary:Version}),
- libpam-cap (= ${binary:Version}),
-Description: POSIX 1003.1e capabilities (debug)
- Libcap implements the user-space interfaces to the POSIX 1003.1e capabilities
- available in Linux kernels. These capabilities are a partitioning of the all
- powerful root privilege into a set of distinct privileges.
- .
- This package contains the debugging symbols.
-
 Package: libcap-dev
 Section: libdevel
 Architecture: linux-any
 Multi-Arch: same
 Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- libcap2 (= ${binary:Version}),
+    ${misc:Depends},
+    ${shlibs:Depends},
+    libcap2 (= ${binary:Version}),
 Suggests: manpages-dev
 Provides: libcap2-dev
 Description: POSIX 1003.1e capabilities (development)
@@ -83,9 +66,9 @@ Package: libpam-cap
 Architecture: linux-any
 Multi-Arch: same
 Depends:
- ${misc:Depends},
- ${shlibs:Depends},
- libpam-runtime (>= 1.1.3-2~),
+    ${misc:Depends},
+    ${shlibs:Depends},
+    libpam-runtime (>= 1.1.3-2~),
 Breaks: libcap2-bin (<< 1:2.22-1.1)
 Replaces: libcap2-bin (<< 1:2.22-1.1)
 Description: POSIX 1003.1e capabilities (PAM module)
@@ -95,3 +78,17 @@ Description: POSIX 1003.1e capabilities (PAM module)
  .
  This package contains the PAM module for enforcing capabilities on users and
  groups at PAM session start time.
+
+Package: libcap2-udeb
+Section: debian-installer
+Architecture: linux-any
+Package-Type: udeb
+Depends:
+    ${shlibs:Depends},
+    ${misc:Depends},
+Description: POSIX 1003.1e capabilities (library)
+ Libcap implements the user-space interfaces to the POSIX 1003.1e capabilities
+ available in Linux kernels. These capabilities are a partitioning of the all
+ powerful root privilege into a set of distinct privileges.
+ .
+ This is a minimal version, only for use in the installation system.
