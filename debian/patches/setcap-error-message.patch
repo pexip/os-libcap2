@@ -7,11 +7,15 @@ hard to detect what is wrong. I removed the last 'usage' function call,
 because at that code point the 'usage' can not provide any useful information.
 Instead, I added a function 'mystrerror' which shall provide more information.
 
-Last-Update: 2014-07-26
+Last-Update: 2016-02-07
+---
+ progs/setcap.c | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
 
-diff -Naurp libcap2.orig/progs/setcap.c libcap2/progs/setcap.c
---- libcap2.orig/progs/setcap.c
-+++ libcap2/progs/setcap.c
+diff --git a/progs/setcap.c b/progs/setcap.c
+index 7304343..4df1597 100644
+--- a/progs/setcap.c
++++ b/progs/setcap.c
 @@ -22,6 +22,25 @@ static void usage(void)
      exit(1);
  }
@@ -38,9 +42,9 @@ diff -Naurp libcap2.orig/progs/setcap.c libcap2/progs/setcap.c
  #define MAXCAP  2048
  
  static int read_caps(int quiet, const char *filename, char *buffer)
-@@ -195,7 +214,8 @@ int main(int argc, char **argv)
+@@ -196,7 +215,8 @@ int main(int argc, char **argv)
  			"Failed to set capabilities on file `%s' (%s)\n",
- 			argv[0], strerror(errno));
+ 			argv[0], strerror(oerrno));
  		if (!explained) {
 -		    usage();
 +			fprintf(stderr, "%s\n", mystrerror(errno));

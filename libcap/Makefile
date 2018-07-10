@@ -10,15 +10,7 @@ LIBNAME=$(LIBTITLE).so
 STALIBNAME=$(LIBTITLE).a
 #
 
-FILES=cap_alloc cap_proc cap_extint cap_flag cap_text
-
-# make including file support something you can override (no libattr
-# no support).
-ifeq ($(LIBATTR),yes)
-FILES += cap_file
-LDFLAGS += -lattr
-DEPS = -lattr
-endif
+FILES=cap_alloc cap_proc cap_extint cap_flag cap_text cap_file
 
 INCLS=libcap.h cap_names.h $(INCS)
 OBJS=$(addsuffix .o, $(FILES))
@@ -28,7 +20,7 @@ GPERF_OUTPUT = _caps_output.gperf
 
 all: $(MINLIBNAME) $(STALIBNAME) libcap.pc
 
-ifeq ($(shell gperf --version > /dev/null 2>&1 && echo yes),yes)
+ifeq ($(BUILD_GPERF),yes)
 USE_GPERF_OUTPUT = $(GPERF_OUTPUT)
 INCLUDE_GPERF_OUTPUT = -include $(GPERF_OUTPUT)
 endif
@@ -71,18 +63,18 @@ cap_text.o: cap_text.c $(USE_GPERF_OUTPUT) $(INCLS)
 	$(CC) $(CFLAGS) $(IPATH) $(INCLUDE_GPERF_OUTPUT) -c $< -o $@
 
 install: all
-	mkdir -p -m 0755 $(INCDIR)/sys
-	install -m 0644 include/sys/capability.h $(INCDIR)/sys
-	mkdir -p -m 0755 $(LIBDIR)
-	install -m 0644 $(STALIBNAME) $(LIBDIR)/$(STALIBNAME)
-	install -m 0644 $(MINLIBNAME) $(LIBDIR)/$(MINLIBNAME)
-	ln -sf $(MINLIBNAME) $(LIBDIR)/$(MAJLIBNAME)
-	ln -sf $(MAJLIBNAME) $(LIBDIR)/$(LIBNAME)
+	mkdir -p -m 0755 $(FAKEROOT)$(INCDIR)/sys
+	install -m 0644 include/sys/capability.h $(FAKEROOT)$(INCDIR)/sys
+	mkdir -p -m 0755 $(FAKEROOT)$(LIBDIR)
+	install -m 0644 $(STALIBNAME) $(FAKEROOT)$(LIBDIR)/$(STALIBNAME)
+	install -m 0644 $(MINLIBNAME) $(FAKEROOT)$(LIBDIR)/$(MINLIBNAME)
+	ln -sf $(MINLIBNAME) $(FAKEROOT)$(LIBDIR)/$(MAJLIBNAME)
+	ln -sf $(MAJLIBNAME) $(FAKEROOT)$(LIBDIR)/$(LIBNAME)
 ifeq ($(FAKEROOT),)
 	-/sbin/ldconfig
 endif
-	mkdir -p -m 0755 $(PKGCONFIGDIR)
-	install -m 0644 libcap.pc $(PKGCONFIGDIR)/libcap.pc
+	mkdir -p -m 0755 $(FAKEROOT)$(PKGCONFIGDIR)
+	install -m 0644 libcap.pc $(FAKEROOT)$(PKGCONFIGDIR)/libcap.pc
 
 clean:
 	$(LOCALCLEAN)

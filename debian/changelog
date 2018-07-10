@@ -1,3 +1,99 @@
+libcap2 (1:2.25-1) unstable; urgency=medium
+
+  * New upstream release. LP: #1451601
+  * Drop package libcap2-dbg in favor of automatic dbgsym packages, as per
+    https://lists.debian.org/debian-devel/2015/12/msg00262.html.
+  * d/control:
+    - Bump Standards-Version to 3.9.8 (no changes needed)
+    - Increase Priority of libcap2{,-bin} to important. Closes: #815566
+    - Drop libattr1-dev from Build-Depends. Upstream no longer uses this
+      library and instead uses the kernel API directly
+    - Switch Vcs-Browser from gitweb to cgit
+    - Switch to secure URIs in Vcs-* fields
+  * d/rules:
+    - Add hardening=+all to DEB_BUILD_MAINT_OPTIONS
+  * d/tests:
+    - executables:
+      + Fix typos
+      + Don't mount over ADTTMP, use a subdir instead. ADTTMP could already be
+        a mount point for another filesystem, which could make things slightly
+        more confusing
+      + Improve output
+  * d/copyright:
+    - Bump copyright years
+  * d/patches (added):
+    - Avoid-sys-capability.h-on-build-architecture.patch
+      Fixes a FTCBFS on kFreeBSD. Thanks, Helmut Grohne! Closes: #809467
+    - Filter-out-PIE-flags-when-building-shared-objects.patch
+      Filters out -pie, -fpie, and -fPIE from CFLAGS/LDFLAGS when building the
+      shared library and the PAM module
+    - Spelling-fixes.patch
+  * d/patches (updated):
+    - setcap-error-message.patch
+    - Update Don-t-hardcode-build-flags.patch
+  * d/patches (dropped):
+    - Drop include-sys-xattr.patch
+      The reason it was initially created for ceased to exist in 2.25
+  * libcap2-bin:
+    -  lintian override for spelling-error-in-readme-debian (false positive)
+
+ -- Christian Kastner <ckk@debian.org>  Sat, 30 Apr 2016 14:30:26 +0200
+
+libcap2 (1:2.24-12) unstable; urgency=medium
+
+  * d/tests:
+    - Amend stderr redirection to fix autopkgtest failures
+
+ -- Christian Kastner <ckk@debian.org>  Fri, 02 Oct 2015 15:30:03 +0200
+
+libcap2 (1:2.24-11) unstable; urgency=medium
+
+  * d/rules:
+    - Provide BUILD_LDFLAGS and BUILD_CPPFLAGS. Thanks, Helmut Grohne!
+  * d/patches:
+    - Drop patch numbers from .patch filenames
+  * d/patches (updated):
+    - Don-t-hardcode-build-flags.patch
+      When using BUILD_CC, use BUILD_LDFLAGS and BUILD_CPPFLAGS instead of the
+      host ones. Thanks, Helmut Grohne! Closes: #796886
+  * Add package-specific d/gbp.conf
+
+ -- Christian Kastner <ckk@kvr.at>  Tue, 25 Aug 2015 20:40:33 +0200
+
+libcap2 (1:2.24-10) unstable; urgency=medium
+
+  * d/control:
+    - Drop XS-Testsuite. dpkg now recognizes the Testsuite header, and
+      dpkg-source automatically adds one when an autopkgtest suite is found
+    - Add gperf to Build-Depends. The build proceeds slightly differently when
+      gperf is present in the build environment, so make sure it is present in
+      all build environments
+    - Switch Maintainer email to my @debian.org address
+  * d/rules:
+    - Pass --version-info to dh_makeshlibs to match .symbols. Thanks, KiBi!
+  * d/copyright:
+    - Bump copyright years
+  * d/tests:
+    - Add missing dependencies for gcc and libc-dev
+    - Test "executables": Redirect stderr to stdout on test with expected
+      failure
+  * d/patches (updated):
+    - 0004-Don-t-hardcode-build-flags
+      Add LDFLAGS to a target to silence a hardening flags warning, even though
+      the target is not shipped, but only used at build-time.
+  * d/patches (added):
+    - 0006-Hide-private-symbols.patch
+
+ -- Christian Kastner <ckk@debian.org>  Sun, 23 Aug 2015 23:16:07 +0200
+
+libcap2 (1:2.24-9) unstable; urgency=medium
+
+  [ Matthias Klumpp ]
+  * Add udeb package for libcap2 to be used in d-i, since
+    the libudev1-udeb package depends on libcap2 now.
+
+ -- Christian Kastner <debian@kvr.at>  Sun, 07 Jun 2015 18:38:54 +0200
+
 libcap2 (1:2.24-8pexip2) pexip; urgency=low
 
   * No-change rebuild

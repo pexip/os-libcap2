@@ -1,10 +1,10 @@
-From: Christian Kastner <debian@kvr.at>
+From: Christian Kastner <ckk@debian.org>
 Date: Sat, 26 Jul 2014 18:32:55 +0200
 Subject: Syntax fixes for man pages
 
 Hyphens used as minus signs must be escaped.
 
-Last-Update: 2014-07-26
+Last-Update: 2015-10-02
 ---
  doc/cap_clear.3     |  2 +-
  doc/cap_copy_ext.3  |  6 +++---
@@ -135,7 +135,7 @@ index 107b6d1..fa23ff6 100644
  .BR cap_get_file ()
  and
 diff --git a/doc/cap_get_proc.3 b/doc/cap_get_proc.3
-index 123ab3d..84dff44 100644
+index be28362..7e495f8 100644
 --- a/doc/cap_get_proc.3
 +++ b/doc/cap_get_proc.3
 @@ -22,7 +22,7 @@ capability manipulation on processes
