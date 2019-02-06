@@ -1,3 +1,57 @@
+libcap2 (1:2.25-2) unstable; urgency=medium
+
+  * Acknowledge NMUs.
+    Thanks, Matthias Klose and Helmut Grohne!
+
+  * d/upstream/signing-key.asc:
+    - Add Andrew G. Morgan's public OpenPGP key
+  * d/watch:
+    - Update to format version 4
+    - Check vor a valid signature
+  * d/control:
+    - Bump Standards-Version to 4.3.0
+    - Drop Priority of libcap2
+      Priority for this library should be "optional", which is already the
+      Priority of the source package
+    - Switch Build-Depends from debhelper to debhelper-compat
+    - Bump Build-Depends for debhelper to 12
+    - Update Vcs-* URLs to point to Salsa
+    - Switch Homepage to https
+  * d/compat:
+    - Drop, as made obsolete by debhelper-compat
+  * d/rules:
+    - Switch from dh_install to dh_missing
+    - Drop override_dh_strip
+      It was only needed for the dbgsym migration
+  * d/tests/executables:
+    - Rename ADTTMP to AUTOPKGTEST_TMP
+      ADT* variables were renamed in autopkgtest (4.0)
+  * d/manpages/getpcaps.1:
+    - Reproduce section "TEXTUAL REPRESENTATION" from cap_from_text(3)
+      Closes: #826733
+    - Fix program name get_pcaps -> getpcaps
+  * d/copyright:
+    - Add patches/*, and bump copyrights
+    - Switch MRCF Policy URI to https
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 06 Feb 2019 21:12:36 +0100
+
+libcap2 (1:2.25-1.2) unstable; urgency=medium
+
+  * Non-maintainer upload.
+
+  [ Helmut Grohne ]
+  * Fix for FTCBFS, libcap.pc has bad libdir (Closes: #871714)
+
+ -- Manuel A. Fernandez Montecelo <mafm@debian.org>  Fri, 17 Nov 2017 00:35:52 +0100
+
+libcap2 (1:2.25-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Fix FTBFS with gperf 3.1 (Helmut Grohne). Closes: #869588.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 11 Oct 2017 10:26:50 +0200
+
 libcap2 (1:2.25-1) unstable; urgency=medium
 
   * New upstream release. LP: #1451601

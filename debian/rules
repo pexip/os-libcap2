@@ -46,20 +46,18 @@ override_dh_auto_install:
 	cd debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH) && \
 		mv    ../../../lib/$(DEB_HOST_MULTIARCH)/*.a . && \
 		ln -s ../../../lib/$(DEB_HOST_MULTIARCH)/libcap.so.*.* libcap.so
+	sed -i -e 's#^libdir=.*#libdir=/usr/lib/$(DEB_HOST_MULTIARCH)#' \
+		debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/libcap.pc
 
 	# Remove unwanted/unused files (because of --fail-missing)
 	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.so
 
 
-override_dh_install:
-	dh_install --fail-missing
+override_dh_missing:
+	dh_missing --fail-missing
 
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V'libcap2 (>= $(SHLIBS_MINVER))' -plibcap2 \
 		--add-udeb=libcap2-udeb -- -c4
 	dh_makeshlibs --remaining-packages -- -c4
-
-
-override_dh_strip:
-	dh_strip --dbgsym-migration='libcap2-dbg (<< $(DEB_VERSION)~)'
