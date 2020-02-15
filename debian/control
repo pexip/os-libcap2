@@ -12,7 +12,7 @@ Standards-Version: 3.9.8
 Homepage: http://sites.google.com/site/fullycapable/
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/libcap2.git
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/libcap2.git
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ stretch
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ buster
 
 Package: libcap2-bin
 Section: utils
