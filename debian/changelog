@@ -1,3 +1,9 @@
+libcap2 (1:2.25-2pexip1) pexip; urgency=medium
+
+  * Migrate to Buster
+
+ -- Vincent Sanders <vince@pexip.com>  Fri, 28 Feb 2020 22:59:26 +0000
+
 libcap2 (1:2.25-2) unstable; urgency=medium
 
   * Acknowledge NMUs.
