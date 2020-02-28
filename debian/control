@@ -4,14 +4,14 @@ Priority: optional
 Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Christian Kastner <ckk@debian.org>
 Build-Depends:
-    debhelper (>= 9),
+    debhelper-compat (= 12),
     indent,
     libpam0g-dev,
-    gperf,
-Standards-Version: 3.9.8
-Homepage: http://sites.google.com/site/fullycapable/
-Vcs-Git: https://anonscm.debian.org/git/collab-maint/libcap2.git
-Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/libcap2.git
+    gperf (>= 3.1),
+Standards-Version: 4.3.0
+Homepage: https://sites.google.com/site/fullycapable/
+Vcs-Git: https://salsa.debian.org/debian/libcap2.git
+Vcs-Browser: https://salsa.debian.org/debian/libcap2
 XS-Pexip-Upstream: http://ftp.debian.org/debian/ buster
 
 Package: libcap2-bin
@@ -33,7 +33,6 @@ Description: POSIX 1003.1e capabilities (utilities)
  This package contains additional utilities.
 
 Package: libcap2
-Priority: important
 Architecture: linux-any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
