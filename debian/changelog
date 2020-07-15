@@ -1,3 +1,9 @@
+libcap2 (1:2.25-2pexip2) pexip; urgency=medium
+
+  * Rebuild in buster environment
+
+ -- Steve McIntyre <steve.mcintyre@pexip.com>  Wed, 15 Jul 2020 23:03:14 +0000
+
 libcap2 (1:2.25-2pexip1) pexip; urgency=medium
 
   * Migrate to Buster
