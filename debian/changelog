@@ -1,3 +1,113 @@
+libcap2 (1:2.44-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+  * d/rules: Use new upstream solution for setting -Ox
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 14 Oct 2020 23:49:40 +0200
+
+libcap2 (1:2.43-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+    - Drop patches included upstream
+
+ -- Christian Kastner <ckk@debian.org>  Sun, 23 Aug 2020 22:23:14 +0200
+
+libcap2 (1:2.42-2) unstable; urgency=medium
+
+  * New upstream version 2.42
+    - Refresh patches
+    - Add Move-mkdir-to-common-install-target.patch
+  * Drop Debian-specific man page for getpcaps
+
+ -- Christian Kastner <ckk@debian.org>  Fri, 07 Aug 2020 00:14:04 +0200
+
+libcap2 (1:2.36-1) unstable; urgency=medium
+
+  * New upstream version 2.36
+    - Drop patches included upstream
+      + Syntax-fixes-for-man-pages.patch
+      + Avoid-sys-capability.h-on-build-architecture.patch
+      + Spelling-fixes.patch
+      + pam_cap-Honor-PAM_REINITIALIZE_CRED.patch
+      + Fixes-for-man-page-typos.patch
+
+ -- Christian Kastner <ckk@debian.org>  Sat, 20 Jun 2020 23:27:24 +0200
+
+libcap2 (1:2.34-2) unstable; urgency=medium
+
+  * Bump shlibs version to 2.33 (new symbols)
+    This was overlooked in the 2.33 release, where only the symbols file was
+    updated.
+
+ -- Christian Kastner <ckk@debian.org>  Sat, 16 May 2020 10:20:58 +0200
+
+libcap2 (1:2.34-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+    - Override changed PKGCONFIGDIR in d/rules
+    - Drop symbol _cap_names from libcap2.symbols.
+      It was never part of the API, and its definition has now been fixed
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 13 May 2020 01:46:31 +0200
+
+libcap2 (1:2.33-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+    - Add new symbols to libcap2.symbols
+
+ -- Christian Kastner <ckk@debian.org>  Fri, 27 Mar 2020 12:58:42 +0100
+
+libcap2 (1:2.32-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+    - Fixes an issue introduced in 2.31 that breaks fakeroot. (Closes: #951492)
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 17 Feb 2020 13:44:20 +0100
+
+libcap2 (1:2.31-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+    - Update symbols file (symbols added)
+  * Bump Standards-Version to 4.5.0 (no changes needed)
+  * Add lintian-override for orig-tarball-missing-upstream-signature
+
+ -- Christian Kastner <ckk@debian.org>  Sun, 09 Feb 2020 14:52:11 +0100
+
+libcap2 (1:2.27-1) unstable; urgency=medium
+
+  * New upstream release. (Closes: #911509)
+
+  [ Kevin Locke ]
+  * d/rules: Conditionalize tests on DEB_GAIN_ROOT_COMMAND
+    Unfortunately, for the tests, fakeroot does not suffice
+  * d/libcap2.symbols: Add new symbols in 2.26
+  * d/patches:
+    - Add Use-DEB_GAIN_ROOT_CMD-for-make-test.patch
+      Use $DEB_GAIN_ROOT_CMD for make test
+    - Add Make.Rules-Allow-overriding-DYNAMIC.patch
+      Always build using dynamic linking. Upstream builds statically when
+      building in a git repo, which conflicts with git-buildpackage.
+
+  [ Christian Kastner ]
+  * d/gbp.conf: Move branches to debian/master and upstream/latest (DEP-14)
+  * d/control: Bump Standards-Version to 4.4.1.
+    No changes were needed from 4.3.0 to 4.4.1, but Kevin Locke noticed that
+    previously, in going to 4.3.0, the Root-Requires-Root field had not been
+    set
+  * Add Build-Depends-Package field to libcap2.symbols
+  * Bump shlibs version to 2.26 (new symbols)
+  * Add pam_cap-Honor-PAM_REINITIALIZE_CRED.patch.
+    Thanks, for the report and analysis, Daniel Gröber! (Closes: #935921)
+  * Refresh patches
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 28 Oct 2019 10:39:04 +0100
+
 libcap2 (1:2.25-2) unstable; urgency=medium
 
   * Acknowledge NMUs.

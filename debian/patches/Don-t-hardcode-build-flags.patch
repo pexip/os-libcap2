@@ -5,43 +5,18 @@ Subject: Don't hardcode build flags
 Remove upstream's hardcoded build flags in Makefiles so that the build flags
 passed on by dpkg-buildflags are honored. This enables hardening during build.
 
-Last-Update: 2015-10-02
+Last-Update: 2020-02-09
 ---
- Make.Rules       | 6 +++---
- libcap/Makefile  | 8 ++++----
- pam_cap/Makefile | 4 ++--
- progs/Makefile   | 4 ++--
- 4 files changed, 11 insertions(+), 11 deletions(-)
+ libcap/Makefile  | 10 +++++-----
+ pam_cap/Makefile |  4 ++--
+ progs/Makefile   |  4 ++--
+ 3 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/Make.Rules b/Make.Rules
-index 8347b26..61c4c48 100644
---- a/Make.Rules
-+++ b/Make.Rules
-@@ -48,8 +48,8 @@ MINOR=25
- KERNEL_HEADERS := $(topdir)/libcap/include/uapi
- IPATH += -fPIC -I$(KERNEL_HEADERS) -I$(topdir)/libcap/include
- 
--CC := gcc
--CFLAGS := -O2 -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-+CC ?= gcc
-+CFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
- BUILD_CC := $(CC)
- BUILD_CFLAGS := $(CFLAGS) $(IPATH)
- AR := ar
-@@ -60,7 +60,7 @@ WARNINGS=-Wall -Wwrite-strings \
-         -Wstrict-prototypes -Wmissing-prototypes \
-         -Wnested-externs -Winline -Wshadow
- LD=$(CC) -Wl,-x -shared
--LDFLAGS := #-g
-+LDFLAGS += #-g
- BUILD_GPERF := $(shell which gperf >/dev/null 2>/dev/null && echo yes)
- 
- SYSTEM_HEADERS = /usr/include
 diff --git a/libcap/Makefile b/libcap/Makefile
-index d189777..ce327c5 100644
+index de6a28d..6ba7fcc 100644
 --- a/libcap/Makefile
 +++ b/libcap/Makefile
-@@ -35,7 +35,7 @@ libcap.pc: libcap.pc.in
+@@ -50,7 +50,7 @@ libpsx.pc: libpsx.pc.in
  		$< >$@
  
  _makenames: _makenames.c cap_names.list.h
@@ -50,10 +25,10 @@ index d189777..ce327c5 100644
  
  cap_names.h: _makenames
  	./_makenames > cap_names.h
-@@ -52,15 +52,15 @@ $(STALIBNAME): $(OBJS)
+@@ -77,18 +77,18 @@ $(STAPSXLIBNAME): $(PSXOBJS)
  	$(RANLIB) $@
  
- $(MINLIBNAME): $(OBJS)
+ $(MINLIBNAME): $(CAPOBJS)
 -	$(LD) $(CFLAGS) $(LDFLAGS) -Wl,-soname,$(MAJLIBNAME) -o $@ $^
 +	$(LD) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -Wl,-soname,$(MAJLIBNAME) -o $@ $^
  	ln -sf $(MINLIBNAME) $(MAJLIBNAME)
@@ -67,39 +42,43 @@ index d189777..ce327c5 100644
 -	$(CC) $(CFLAGS) $(IPATH) $(INCLUDE_GPERF_OUTPUT) -c $< -o $@
 +	$(CC) $(CFLAGS) $(CPPFLAGS) $(IPATH) $(INCLUDE_GPERF_OUTPUT) -c $< -o $@
  
- install: all
- 	mkdir -p -m 0755 $(FAKEROOT)$(INCDIR)/sys
+ cap_test: cap_test.c libcap.h
+-	$(CC) $(CFLAGS) $(IPATH) $< -o $@
++	$(CC) $(CFLAGS) $(CPPFLAGS) $(IPATH) $< -o $@
+ 
+ test: cap_test
+ 	./cap_test
 diff --git a/pam_cap/Makefile b/pam_cap/Makefile
-index f83e324..4b15291 100644
+index 638d793..a4c0e01 100644
 --- a/pam_cap/Makefile
 +++ b/pam_cap/Makefile
-@@ -20,10 +20,10 @@ pam_cap.so: pam_cap.o
- 	$(LD) $(LDFLAGS) -o pam_cap.so $< $(LDLIBS)
+@@ -19,10 +19,10 @@ pam_cap.so: pam_cap.o
+ 	$(LD) -o pam_cap.so $< $(LIBCAPLIB) $(LDFLAGS) -lpam
  
  pam_cap.o: pam_cap.c
 -	$(CC) $(CFLAGS) $(IPATH) -c $< -o $@
 +	$(CC) $(CFLAGS) $(CPPFLAGS) $(IPATH) -c $< -o $@
  
- testcompile: test.c pam_cap.o
--	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $+ -lpam -ldl $(LDLIBS)
-+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $+ -lpam -ldl $(LDLIBS)
+ test_pam_cap: test_pam_cap.c pam_cap.c
+-	$(CC) $(CFLAGS) $(IPATH) -o $@ test_pam_cap.c $(LIBCAPLIB) $(LDFLAGS) --static
++	$(CC) $(CFLAGS) $(CPPFLAGS) $(IPATH) -o $@ test_pam_cap.c $(LIBCAPLIB) $(LDFLAGS) --static
  
- clean:
- 	rm -f *.o *.so testcompile *~
+ testlink: test.c pam_cap.o
+ 	$(CC) $(CFLAGS) -o $@ $+ -lpam -ldl $(LIBCAPLIB) $(LDFLAGS)
 diff --git a/progs/Makefile b/progs/Makefile
-index c094a24..c38964e 100644
+index 9462a2f..5bfb8da 100644
 --- a/progs/Makefile
 +++ b/progs/Makefile
-@@ -16,10 +16,10 @@ LDLIBS += -L../libcap -lcap
- all: $(BUILD)
+@@ -24,10 +24,10 @@ $(DEPS):
+ 	make -C ../libcap $(DEPSBUILD)
  
- $(BUILD): %: %.o
--	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
-+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
+ $(BUILD): %: %.o $(DEPS)
+-	$(CC) $(CFLAGS) -o $@ $< $(LIBCAPLIB) $(LDFLAGS)
++	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $< $(LIBCAPLIB) $(LDFLAGS)
  
  %.o: %.c $(INCS)
--	$(CC) $(IPATH) $(CFLAGS) -c $< -o $@
-+	$(CC) $(IPATH) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+-	$(CC) $(IPATH) $(CAPSH_SHELL) $(CFLAGS) -c $< -o $@
++	$(CC) $(IPATH) $(CAPSH_SHELL) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
  
  install: all
  	mkdir -p -m 0755 $(FAKEROOT)$(SBINDIR)

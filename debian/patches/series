@@ -1,8 +1,7 @@
 ldlibs.patch
 setcap-error-message.patch
 Don-t-hardcode-build-flags.patch
-Syntax-fixes-for-man-pages.patch
 Hide-private-symbols.patch
-Avoid-sys-capability.h-on-build-architecture.patch
 Filter-out-PIE-flags-when-building-shared-objects.patch
-Spelling-fixes.patch
+Use-DEB_GAIN_ROOT_CMD-for-make-test.patch
+Make.Rules-Allow-overriding-DYNAMIC.patch
