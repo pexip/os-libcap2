@@ -13,7 +13,7 @@ Last-Update: 2016-02-07
  1 file changed, 21 insertions(+), 1 deletion(-)
 
 diff --git a/progs/setcap.c b/progs/setcap.c
-index 7304343..4df1597 100644
+index 442685d..bf3b3c4 100644
 --- a/progs/setcap.c
 +++ b/progs/setcap.c
 @@ -22,6 +22,25 @@ static void usage(void)
@@ -42,7 +42,7 @@ index 7304343..4df1597 100644
  #define MAXCAP  2048
  
  static int read_caps(int quiet, const char *filename, char *buffer)
-@@ -196,7 +215,8 @@ int main(int argc, char **argv)
+@@ -218,7 +237,8 @@ int main(int argc, char **argv)
  			"Failed to set capabilities on file `%s' (%s)\n",
  			argv[0], strerror(oerrno));
  		if (!explained) {
