@@ -1,7 +1,4 @@
-ldlibs.patch
-setcap-error-message.patch
-Don-t-hardcode-build-flags.patch
 Hide-private-symbols.patch
 Filter-out-PIE-flags-when-building-shared-objects.patch
-Use-DEB_GAIN_ROOT_CMD-for-make-test.patch
-Make.Rules-Allow-overriding-DYNAMIC.patch
+Correct-the-check-of-pthread_create-s-return-value.patch
+Large-strings-can-confuse-libcap-s-internal-strdup-code.patch
