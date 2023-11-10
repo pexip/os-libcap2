@@ -1,4 +1,6 @@
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/capability.h>
 #include <sys/types.h>
@@ -23,7 +25,9 @@ struct test_case_s {
     const char **envp;
     const char *iab;
     cap_mode_t mode;
+    int launch_abort;
     int result;
+    int (*callback_fn)(void *detail);
 };
 
 #ifdef WITH_PTHREADS
@@ -31,23 +35,55 @@ struct test_case_s {
 #else /* WITH_PTHREADS */
 #endif /* WITH_PTHREADS */
 
+/*
+ * clean_out drops all process capabilities.
+ */
+static int clean_out(void *data) {
+    cap_t empty;
+    empty = cap_init();
+    if (cap_set_proc(empty) != 0) {
+	_exit(1);
+    }
+    cap_free(empty);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     static struct test_case_s vs[] = {
 	{
-	    .args = { "../progs/capsh", "--", "-c", "echo hello" },
+	    .args = { "../progs/tcapsh-static", "--", "-c", "echo hello" },
 	    .result = 0
 	},
 	{
-	    .args = { "../progs/capsh", "--is-uid=123" },
+	    .args = { "../progs/tcapsh-static", "--", "-c", "echo hello" },
+	    .callback_fn = &clean_out,
+	    .result = 0
+	},
+	{
+	    .callback_fn = &clean_out,
+	    .result = 0
+	},
+	{
+	    .args = { "../progs/tcapsh-static", "--is-uid=123" },
 	    .result = 256
 	},
 	{
-	    .args = { "../progs/capsh", "--is-uid=123" },
-	    .result = 0,
-	    .uid = 123,
+	    .args = { "/", "won't", "work" },
+	    .launch_abort = 1,
 	},
 	{
-	    .args = { "../progs/capsh", "--is-gid=123" },
+	    .args = { "../progs/tcapsh-static", "--is-uid=123" },
+	    .uid = 123,
+	    .result = 0,
+	},
+	{
+	    .args = { "../progs/tcapsh-static", "--is-uid=123" },
+	    .callback_fn = &clean_out,
+	    .uid = 123,
+	    .launch_abort = 1,
+	},
+	{
+	    .args = { "../progs/tcapsh-static", "--is-gid=123" },
 	    .result = 0,
 	    .gid = 123,
 	    .ngroups = 1,
@@ -55,13 +91,13 @@ int main(int argc, char **argv) {
 	    .iab = "",
 	},
 	{
-	    .args = { "../progs/capsh", "--dropped=cap_chown",
+	    .args = { "../progs/tcapsh-static", "--dropped=cap_chown",
 		      "--has-i=cap_chown" },
 	    .result = 0,
 	    .iab = "!%cap_chown"
 	},
 	{
-	    .args = { "../progs/capsh", "--dropped=cap_chown",
+	    .args = { "../progs/tcapsh-static", "--dropped=cap_chown",
 		      "--has-i=cap_chown", "--is-uid=234",
 		      "--has-a=cap_chown", "--has-p=cap_chown" },
 	    .uid = 234,
@@ -69,7 +105,8 @@ int main(int argc, char **argv) {
 	    .iab = "!^cap_chown"
 	},
 	{
-	    .args = { "../progs/capsh", "--inmode=NOPRIV" },
+	    .args = { "../progs/tcapsh-static", "--inmode=NOPRIV",
+		      "--has-no-new-privs" },
 	    .result = 0,
 	    .mode = CAP_MODE_NOPRIV
 	},
@@ -83,14 +120,39 @@ int main(int argc, char **argv) {
 	},
     };
 
+    if (errno != 0) {
+	perror("unexpected initial value for errno");
+	exit(1);
+    }
+
     cap_t orig = cap_get_proc();
+    if (orig == NULL) {
+	perror("failed to get process capabilities");
+	exit(1);
+    }
 
     int success = 1, i;
     for (i=0; vs[i].pass_on != NO_MORE; i++) {
+	cap_launch_t attr = NULL;
 	const struct test_case_s *v = &vs[i];
+	if (cap_launch(attr, NULL) != -1) {
+	    perror("NULL launch didn't fail");
+	    exit(1);
+	}
 	printf("[%d] test should %s\n", i,
-	       v->result ? "generate error" : "work");
-	cap_launch_t attr = cap_new_launcher(v->args[0], v->args, v->envp);
+	       v->result || v->launch_abort ? "generate error" : "work");
+	if (v->args[0] != NULL) {
+	    attr = cap_new_launcher(v->args[0], v->args, v->envp);
+	    if (attr == NULL) {
+		perror("failed to obtain launcher");
+		exit(1);
+	    }
+	    if (v->callback_fn != NULL) {
+		cap_launcher_callback(attr, v->callback_fn);
+	    }
+	} else {
+	    attr = cap_func_launcher(v->callback_fn);
+	}
 	if (v->chroot) {
 	    cap_launcher_set_chroot(attr, v->chroot);
 	}
@@ -123,34 +185,40 @@ int main(int argc, char **argv) {
 	pid_t child = cap_launch(attr, NULL);
 
 	if (child <= 0) {
-	    fprintf(stderr, "[%d] failed to launch", i);
-	    perror(":");
-	    success = 0;
+	    fprintf(stderr, "[%d] failed to launch: ", i);
+	    perror("");
+	    if (!v->launch_abort) {
+		success = 0;
+	    }
 	    continue;
 	}
 	if (cap_free(attr)) {
-	    fprintf(stderr, "[%d] failed to free launcher", i);
-	    perror(":");
+	    fprintf(stderr, "[%d] failed to free launcher: ", i);
+	    perror("");
 	    success = 0;
 	}
 	int result;
 	int ret = waitpid(child, &result, 0);
 	if (ret != child) {
-	    fprintf(stderr, "[%d] failed to wait", i);
-	    perror(":");
+	    fprintf(stderr, "[%d] failed to wait: ", i);
+	    perror("");
 	    success = 0;
 	    continue;
 	}
 	if (result != v->result) {
-	    fprintf(stderr, "[%d] bad result: got=%d want=%d", i, result,
+	    fprintf(stderr, "[%d] bad result: got=%d want=%d: ", i, result,
 		    v->result);
-	    perror(":");
+	    perror("");
 	    success = 0;
 	    continue;
 	}
     }
 
     cap_t final = cap_get_proc();
+    if (final == NULL) {
+	perror("unable to get final capabilities");
+	exit(1);
+    }
     if (cap_compare(orig, final)) {
 	char *was = cap_to_text(orig, NULL);
 	char *is = cap_to_text(final, NULL);
@@ -162,9 +230,10 @@ int main(int argc, char **argv) {
     cap_free(final);
     cap_free(orig);
 
-    if (success) {
-	printf("cap_launch_test: PASSED\n");
-    } else {
+    if (!success) {
 	printf("cap_launch_test: FAILED\n");
+	exit(1);
     }
+    printf("cap_launch_test: PASSED\n");
+    exit(0);
 }

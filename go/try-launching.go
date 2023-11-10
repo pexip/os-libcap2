@@ -20,6 +20,8 @@ func tryLaunching() {
 	}
 	root := cwd[:strings.LastIndex(cwd, "/")]
 
+	hasSysAdmin, _ := cap.GetBound(cap.SYS_ADMIN)
+
 	vs := []struct {
 		args       []string
 		fail       bool
@@ -28,6 +30,7 @@ func tryLaunching() {
 		iab        string
 		uid        int
 		gid        int
+		mode       cap.Mode
 		groups     []int
 	}{
 		{args: []string{root + "/go/ok"}},
@@ -37,12 +40,17 @@ func tryLaunching() {
 			uid:    123,
 			gid:    456,
 			groups: []int{1, 2, 3},
-			fail:   syscall.Getuid() != 0,
+			fail:   syscall.Getuid() != 0 || !hasSysAdmin,
 		},
 		{
 			args:   []string{"/ok"},
 			chroot: root + "/go",
 			fail:   syscall.Getuid() != 0,
+		},
+		{
+			args: []string{root + "/progs/tcapsh-static", "--inmode=NOPRIV", "--has-no-new-privs"},
+			mode: cap.ModeNoPriv,
+			fail: syscall.Getuid() != 0,
 		},
 	}
 
@@ -61,6 +69,9 @@ func tryLaunching() {
 		if v.gid != 0 {
 			e.SetGroups(v.gid, v.groups)
 		}
+		if v.mode != 0 {
+			e.SetMode(v.mode)
+		}
 		if v.iab != "" {
 			if iab, err := cap.IABFromText(v.iab); err != nil {
 				log.Fatalf("failed to parse iab=%q: %v", v.iab, err)
@@ -68,6 +79,7 @@ func tryLaunching() {
 				e.SetIAB(iab)
 			}
 		}
+		log.Printf("[%d] trying: %q\n", i, v.args)
 		if ps[i], err = e.Launch(nil); err != nil {
 			if v.fail {
 				continue

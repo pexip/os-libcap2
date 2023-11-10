@@ -2,6 +2,7 @@ package cap
 
 import (
 	"errors"
+	"fmt"
 	"syscall"
 	"unsafe"
 )
@@ -33,9 +34,11 @@ const (
 
 // defines from uapi/linux/prctl.h
 const (
+	prGetKeepCaps   = 7
 	prSetKeepCaps   = 8
 	prGetSecureBits = 27
 	prSetSecureBits = 28
+	prSetNoNewPrivs = 38
 )
 
 // GetSecbits returns the current setting of the process' Secbits.
@@ -54,11 +57,11 @@ func (sc *syscaller) setSecbits(s Secbits) error {
 
 // Set attempts to force the process Secbits to a value. This function
 // will raise cap.SETPCAP in order to achieve this operation, and will
-// completely lower the Effective  vector of the process returning.
+// completely lower the Effective Flag of the process upon returning.
 func (s Secbits) Set() error {
-	scwMu.Lock()
-	defer scwMu.Unlock()
-	return multisc.setSecbits(s)
+	state, sc := scwStateSC()
+	defer scwSetState(launchBlocked, state, -1)
+	return sc.setSecbits(s)
 }
 
 // Mode summarizes a complicated secure-bits and capability mode in a
@@ -72,6 +75,7 @@ const (
 	ModeNoPriv
 	ModePure1EInit
 	ModePure1E
+	ModeHybrid
 )
 
 // GetMode assesses the current process state and summarizes it as
@@ -79,6 +83,9 @@ const (
 // declared ModeUncertain.
 func GetMode() Mode {
 	b := GetSecbits()
+	if b == 0 {
+		return ModeHybrid
+	}
 	if b&securedBasicBits != securedBasicBits {
 		return ModeUncertain
 	}
@@ -98,12 +105,12 @@ func GetMode() Mode {
 
 	w := GetProc()
 	e := NewSet()
-	cf, _ := w.Compare(e)
+	cf, _ := w.Cf(e)
 
-	if Differs(cf, Inheritable) {
+	if cf.Has(Inheritable) {
 		return ModePure1E
 	}
-	if Differs(cf, Permitted) || Differs(cf, Effective) {
+	if cf.Has(Permitted) || cf.Has(Effective) {
 		return ModePure1EInit
 	}
 
@@ -138,6 +145,10 @@ func (sc *syscaller) setMode(m Mode) error {
 		return err
 	}
 
+	if m == ModeHybrid {
+		return sc.setSecbits(0)
+	}
+
 	if m == ModeNoPriv || m == ModePure1EInit {
 		w.ClearFlag(Inheritable)
 	} else if m != ModePure1E {
@@ -163,6 +174,9 @@ func (sc *syscaller) setMode(m Mode) error {
 	}
 	w.ClearFlag(Permitted)
 
+	// For good measure.
+	sc.prctlwcall6(prSetNoNewPrivs, 1, 0, 0, 0, 0)
+
 	return nil
 }
 
@@ -177,9 +191,9 @@ func (sc *syscaller) setMode(m Mode) error {
 // permission or because (some of) the Secbits are already locked for
 // the current process.
 func (m Mode) Set() error {
-	scwMu.Lock()
-	defer scwMu.Unlock()
-	return multisc.setMode(m)
+	state, sc := scwStateSC()
+	defer scwSetState(launchBlocked, state, -1)
+	return sc.setMode(m)
 }
 
 // String returns the libcap conventional string for this mode.
@@ -193,6 +207,8 @@ func (m Mode) String() string {
 		return "PURE1E_INIT"
 	case ModePure1E:
 		return "PURE1E"
+	case ModeHybrid:
+		return "HYBRID"
 	default:
 		return "UNKNOWN"
 	}
@@ -228,15 +244,15 @@ func (sc *syscaller) setUID(uid int) error {
 // all other variants of UID (EUID etc) to the specified value without
 // dropping the privilege of the current process. This function will
 // raise cap.SETUID in order to achieve this operation, and will
-// completely lower the Effective vector of the process before
+// completely lower the Effective Flag of the process before
 // returning. Unlike the traditional method of dropping privilege when
-// changing from [E]UID=0 to some other UID, this function only
-// performs a change of UID cap.SETUID is available, and the action
-// does not alter the Permitted Flag of the process' Set.
+// changing from [E]UID=0 to some other UID, this function only can
+// perform any change of UID if cap.SETUID is available, and this
+// operation will not alter the Permitted Flag of the process' Set.
 func SetUID(uid int) error {
-	scwMu.Lock()
-	defer scwMu.Unlock()
-	return multisc.setUID(uid)
+	state, sc := scwStateSC()
+	defer scwSetState(launchBlocked, state, -1)
+	return sc.setUID(uid)
 }
 
 //go:uintptrescapes
@@ -282,7 +298,43 @@ func (sc *syscaller) setGroups(gid int, suppl []int) error {
 // completely lower the Effective Flag of the process Set before
 // returning.
 func SetGroups(gid int, suppl ...int) error {
-	scwMu.Lock()
-	defer scwMu.Unlock()
-	return multisc.setGroups(gid, suppl)
+	state, sc := scwStateSC()
+	defer scwSetState(launchBlocked, state, -1)
+	return sc.setGroups(gid, suppl)
+}
+
+//go:uintptrescapes
+
+// Prctlw is a convenience function for performing a syscall.Prctl()
+// call that executes on all the threads of the process. It is called
+// Prctlw because it is only appropriate to call this function when it
+// is writing thread state that the caller wants to set on all OS
+// threads of the process to observe POSIX semantics when Linux
+// doesn't natively honor them. (Check prctl documentation for when it
+// is appropriate to use this vs. a normal syscall.Prctl() call.)
+func Prctlw(prVal uintptr, args ...uintptr) (int, error) {
+	if n := len(args); n > 5 {
+		return -1, fmt.Errorf("prctl supports up to 5 arguments (not %d)", n)
+	}
+	state, sc := scwStateSC()
+	defer scwSetState(launchBlocked, state, -1)
+	as := make([]uintptr, 5)
+	copy(as, args)
+	return sc.prctlwcall6(prVal, as[0], as[1], as[2], as[3], as[4])
+}
+
+//go:uintptrescapes
+
+// Prctl is a convenience function that performs a syscall.Prctl()
+// that either reads state using a single OS thread, or performs a
+// Prctl that is treated as a process wide setting. It is provided for
+// symmetry reasons, but is equivalent to simply calling the
+// corresponding syscall function.
+func Prctl(prVal uintptr, args ...uintptr) (int, error) {
+	if n := len(args); n > 5 {
+		return -1, fmt.Errorf("prctl supports up to 5 arguments (not %d)", n)
+	}
+	as := make([]uintptr, 5)
+	copy(as, args)
+	return singlesc.prctlrcall6(prVal, as[0], as[1], as[2], as[3], as[4])
 }

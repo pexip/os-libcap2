@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 1999,2007,19,20 Andrew G. Morgan <morgan@kernel.org>
+ * Copyright (c) 1999,2007,2019-21 Andrew G. Morgan <morgan@kernel.org>
  *
  * The purpose of this module is to enforce inheritable, bounding and
  * ambient capability sets for a specified user.
  */
 
-/* #define DEBUG */
+/* #define PAM_DEBUG */
 
 #ifndef _DEFAULT_SOURCE
 #define _DEFAULT_SOURCE
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #include <sys/types.h>
 #include <linux/limits.h>
 
@@ -31,10 +32,18 @@
 #define CAP_FILE_BUFFER_SIZE    4096
 #define CAP_FILE_DELIMITERS     " \t\n"
 
+/*
+ * pam_cap_s is used to summarize argument values in a parsed form.
+ */
 struct pam_cap_s {
     int debug;
+    int keepcaps;
+    int autoauth;
+    int defer;
     const char *user;
     const char *conf_filename;
+    const char *fallback;
+    pam_handle_t *pamh;
 };
 
 /*
@@ -60,6 +69,9 @@ static int load_groups(const char *user, char ***groups, int *groups_n) {
     }
 
     *groups = calloc(ngrps, sizeof(char *));
+    if (*groups == NULL) {
+	return -1;
+    }
     int g_n = 0, i;
     for (i = 0; i < ngrps; i++) {
 	const struct group *g = getgrgid(grps[i]);
@@ -74,7 +86,7 @@ static int load_groups(const char *user, char ***groups, int *groups_n) {
     return 0;
 }
 
-/* obtain the inheritable capabilities for the current user */
+/* obtain the desired IAB capabilities for the current user */
 
 static char *read_capabilities_for_user(const char *user, const char *source)
 {
@@ -175,6 +187,51 @@ defer:
 }
 
 /*
+ * This is the "defer" cleanup function that actually applies the IAB
+ * tuple. This happens really late in the PAM session, hopefully after
+ * the application has performed its setuid() function.
+ */
+static void iab_apply(pam_handle_t *pamh, void *data, int error_status)
+{
+    cap_iab_t iab = data;
+    int retval = error_status & ~(PAM_DATA_REPLACE|PAM_DATA_SILENT);
+
+#ifdef PAM_DEBUG
+    {
+	cap_t c = cap_get_proc();
+	cap_iab_t tu = cap_iab_get_proc();
+	char *tc, *ttu;
+	tc = cap_to_text(c, NULL);
+	ttu = cap_iab_to_text(tu);
+
+	D(("iab_apply with uid=%d,euid=%d and error_status=0x%08x \"%s\", [%s]",
+	   getuid(), geteuid(), error_status, tc, ttu));
+
+	cap_free(ttu);
+	cap_free(tc);
+	cap_free(tu);
+	cap_free(c);
+    }
+#endif
+
+    data = NULL;
+    if (error_status & PAM_DATA_REPLACE) {
+	goto done;
+    }
+
+    if (retval != PAM_SUCCESS || !(error_status & PAM_DATA_SILENT)) {
+	goto done;
+    }
+
+    if (cap_iab_set_proc(iab) != 0) {
+	D(("IAB setting failed"));
+    }
+
+done:
+    cap_free(iab);
+}
+
+/*
  * Set capabilities for current process to match the current
  * permitted+executable sets combined with the configured inheritable
  * set.
@@ -198,7 +255,11 @@ static int set_capabilities(struct pam_cap_s *cs)
 					   ? cs->conf_filename:USER_CAP_FILE );
     if (conf_caps == NULL) {
 	D(("no capabilities found for user [%s]", cs->user));
-	goto cleanup_cap_s;
+	if (cs->fallback == NULL) {
+	    goto cleanup_cap_s;
+	}
+	conf_caps = strdup(cs->fallback);
+	D(("user [%s] received fallback caps [%s]", cs->user, conf_caps));
     }
 
     ssize_t conf_caps_length = strlen(conf_caps);
@@ -218,7 +279,7 @@ static int set_capabilities(struct pam_cap_s *cs)
 	if (!cap_set_proc(cap_s)) {
 	    ok = 1;
 	}
-	goto cleanup_cap_s;
+	goto cleanup_conf;
     }
 
     iab = cap_iab_from_text(conf_caps);
@@ -227,21 +288,38 @@ static int set_capabilities(struct pam_cap_s *cs)
 	goto cleanup_conf;
     }
 
-    if (!cap_iab_set_proc(iab)) {
+    if (cs->defer) {
+	D(("configured to delay applying IAB"));
+	pam_set_data(cs->pamh, "pam_cap_iab", iab, iab_apply);
+	iab = NULL;
+    } else if (!cap_iab_set_proc(iab)) {
 	D(("able to set the IAB [%s] value", conf_caps));
 	ok = 1;
     }
     cap_free(iab);
+
+    if (cs->keepcaps) {
+	/*
+	 * Best effort to set keep caps - this may help work around
+	 * situations where applications are using a capabilities
+	 * unaware setuid() call.
+	 *
+	 * It isn't needed unless you want to support Ambient vector
+	 * values in the IAB. In this case, it will likely also
+	 * require you use the "defer" module argument.
+	 */
+	D(("setting keepcaps"));
+	(void) cap_prctlw(PR_SET_KEEPCAPS, 1, 0, 0, 0, 0);
+    }
 
 cleanup_conf:
     memset(conf_caps, 0, conf_caps_length);
     _pam_drop(conf_caps);
 
 cleanup_cap_s:
-    if (cap_s) {
-	cap_free(cap_s);
-	cap_s = NULL;
-    }
+    cap_free(cap_s);
+    cap_s = NULL;
+
     return ok;
 }
 
@@ -260,12 +338,24 @@ static void _pam_log(int err, const char *format, ...)
 
 static void parse_args(int argc, const char **argv, struct pam_cap_s *pcs)
 {
+    D(("parsing %d module arg(s)", argc));
+
+    memset(pcs, 0, sizeof(*pcs));
+
     /* step through arguments */
     for (; argc-- > 0; ++argv) {
 	if (!strcmp(*argv, "debug")) {
 	    pcs->debug = 1;
 	} else if (!strncmp(*argv, "config=", 7)) {
 	    pcs->conf_filename = 7 + *argv;
+	} else if (!strcmp(*argv, "keepcaps")) {
+	    pcs->keepcaps = 1;
+	} else if (!strcmp(*argv, "autoauth")) {
+	    pcs->autoauth = 1;
+	} else if (!strncmp(*argv, "default=", 8)) {
+	    pcs->fallback = 8 + *argv;
+	} else if (!strcmp(*argv, "defer")) {
+	    pcs->defer = 1;
 	} else {
 	    _pam_log(LOG_ERR, "unknown option; %s", *argv);
 	}
@@ -284,7 +374,6 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     struct pam_cap_s pcs;
     char *conf_caps;
 
-    memset(&pcs, 0, sizeof(pcs));
     parse_args(argc, argv, &pcs);
 
     retval = pam_get_user(pamh, &pcs.user, NULL);
@@ -292,6 +381,12 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	D(("user conversation is not available yet"));
 	memset(&pcs, 0, sizeof(pcs));
 	return PAM_INCOMPLETE;
+    }
+
+    if (pcs.autoauth) {
+	D(("pam_sm_authenticate autoauth = success"));
+	memset(&pcs, 0, sizeof(pcs));
+	return PAM_SUCCESS;
     }
 
     if (retval != PAM_SUCCESS) {
@@ -310,31 +405,32 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	   conf_caps));
 
 	/* We could also store this as a pam_[gs]et_data item for use
-	   by the setcred call to follow. As it is, there is a small
-	   race associated with a redundant read. Oh well, if you
-	   care, send me a patch.. */
+	   by the setcred call to follow. However, this precludes
+	   using pam_cap as just a cred module, and requires that the
+	   'auth' component be called first.  As it is, there is a
+	   small race associated with a redundant read of the
+	   config. */
 
 	_pam_overwrite(conf_caps);
 	_pam_drop(conf_caps);
 
 	return PAM_SUCCESS;
-
-    } else {
-
-	D(("there are no capabilities restrictions on this user"));
-	return PAM_IGNORE;
-
     }
+
+    D(("there are no capabilities restrictions on this user"));
+    return PAM_IGNORE;
 }
 
 /*
- * pam_sm_setcred applies inheritable capabilities loaded by the
- * pam_sm_authenticate pass for the user.
+ * pam_sm_setcred optionally applies inheritable capabilities loaded
+ * by the pam_sm_authenticate pass for the user. If it doesn't apply
+ * them directly (because of the "defer" module argument), it caches
+ * the cap_iab_t value for later use during the pam_end() call.
  */
 int pam_sm_setcred(pam_handle_t *pamh, int flags,
 		   int argc, const char **argv)
 {
-    int retval;
+    int retval = 0;
     struct pam_cap_s pcs;
 
     if (!(flags & (PAM_ESTABLISH_CRED | PAM_REINITIALIZE_CRED))) {
@@ -342,7 +438,6 @@ int pam_sm_setcred(pam_handle_t *pamh, int flags,
 	return PAM_IGNORE;
     }
 
-    memset(&pcs, 0, sizeof(pcs));
     parse_args(argc, argv, &pcs);
 
     retval = pam_get_item(pamh, PAM_USER, (const void **)&pcs.user);
@@ -351,8 +446,9 @@ int pam_sm_setcred(pam_handle_t *pamh, int flags,
 	return PAM_AUTH_ERR;
     }
 
+    pcs.pamh = pamh;
     retval = set_capabilities(&pcs);
     memset(&pcs, 0, sizeof(pcs));
 
-    return (retval ? PAM_SUCCESS:PAM_IGNORE );
+    return (retval ? PAM_SUCCESS:PAM_IGNORE);
 }
