@@ -1,3 +1,89 @@
+libcap2 (1:2.66-4) unstable; urgency=medium
+
+  * Apply upstream patches for CVE-2023-2602, CVE-2023-2603
+    (Closes: #1036114)
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 15 May 2023 20:34:57 +0200
+
+libcap2 (1:2.66-3) unstable; urgency=medium
+
+  * Add gcc to autopkgtest for upstream tests.
+    Otherwise dpkg-architecture prints a warning to stderr, triggering a
+    an autopkgtest FAIL. (Closes: #1026773)
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 21 Dec 2022 21:19:49 +0100
+
+libcap2 (1:2.66-2) unstable; urgency=medium
+
+  [ Christian Kastner ]
+  * Add missing Breaks/Replaces for libpam-cap man page takeover
+    (Closes: #1026001)
+
+  [ Helmut Grohne ]
+  * Fix FTCBFS (Closes: #1025983)
+    - Let dh_auto_build pass cross tools to test program builds.
+    - Pass FORCELINKPAM to all targets.
+    - Pass CROSS_COMPILE to cover objcopy.
+    - Skip passing CC as dh_auto_build already passes it.
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 14 Dec 2022 00:27:37 +0100
+
+libcap2 (1:2.66-1) unstable; urgency=medium
+
+  * New upstream release.
+
+  [ Helmut Grohne ]
+  * Support the noudeb build profile (Closes: #1024918)
+
+  [ Christian Kastner ]
+  * Install tests in arch-specific directory (Closes: #1025957)
+  * Rework autopkgtests
+  * Add chrpath to Build-Depends, for removing RPATH from test binaries
+  * Fix existing lintian override pattern
+  * Add lintian overrides for static test binaries
+  * Add missing Build-Depends-Package to symbols file
+  * Move pam_cap manpages from libcap2-bin to libpam-cap
+  * Add lintian override for pam_cap man page
+  * Bump d/copyright
+
+ -- Christian Kastner <ckk@debian.org>  Sun, 11 Dec 2022 15:49:58 +0100
+
+libcap2 (1:2.63-1) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Christian Kastner <ckk@debian.org>  Sat, 10 Dec 2022 14:06:25 +0100
+
+libcap2 (1:2.63-1~exp1) experimental; urgency=medium
+
+  * New upstream release. (Closes: #1000217)
+    - Drop ldlibs.patch
+    - Drop setcap-error-message.patch.
+    - Drop Don-t-hardcode-build-flags.patch.
+    - Drop Use-DEB_GAIN_ROOT_CMD-for-make-test.patch
+    - Drop Make.Rules-Allow-overriding-DYNAMIC.patch
+    - Add Fix-path-for-saved-test-binaries.patch
+    - Refresh other patches
+  * Bump symbols file
+  * Bump Standards-Version to 4.6.1 (no changes needed)
+  * Bump debhelper compatibility to 13
+  * Install accompanying helper library libpsx. This library might be shipped
+    separately at a later point in time
+  * Save away test binaries for autopkgtest
+  * Extend autopkgtests to run the saved test binaries
+  * Switch Rules-Requires-Root to 'no'. (Closes: #1011772)
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 13 Jun 2022 22:49:34 +0200
+
+libcap2 (1:2.45-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Refresh patches
+  * Bump Standards-Version to 4.5.1 (no changes needed)
+  * libcap2.symbols: Drop accidental Debian revision from one symbol
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 07 Dec 2020 17:36:08 +0100
+
 libcap2 (1:2.44-1pexip3) pexip-bullseye; urgency=medium
 
   * Bullseye rebuild for ARM64 inclusion

@@ -6,36 +6,39 @@ Filter out -pie, -fpie, and -fPIE when building the shared library and the PAM
 module. This way, hardening=+all can be used unconditionally in debian/rules.
 
 Forwarded: not-needed
-Last-Update: 2016-04-30
+Last-Update: 2022-03-04
 ---
  libcap/Makefile  | 2 ++
  pam_cap/Makefile | 3 +++
  2 files changed, 5 insertions(+)
 
-diff --git a/libcap/Makefile b/libcap/Makefile
-index 6d96bf7..abf1e03 100644
---- a/libcap/Makefile
-+++ b/libcap/Makefile
-@@ -10,6 +10,8 @@ LIBNAME=$(LIBTITLE).so
- STACAPLIBNAME=$(LIBTITLE).a
- #
- STAPSXLIBNAME=libpsx.a
-+CFLAGS  := $(filter-out -fPIE,$(CFLAGS))
-+LDFLAGS := $(filter-out -fPIE,$(filter-out -pie,$(LDFLAGS)))
- 
- CAPFILES=cap_alloc cap_proc cap_extint cap_flag cap_text cap_file
+Index: libcap2/libcap/Makefile
+===================================================================
+--- libcap2.orig/libcap/Makefile
++++ libcap2/libcap/Makefile
+@@ -18,6 +18,10 @@ CAPMAGICOBJ=cap_magic.o
  PSXFILES=../psx/psx
-diff --git a/pam_cap/Makefile b/pam_cap/Makefile
-index a4c0e01..caa98e3 100644
---- a/pam_cap/Makefile
-+++ b/pam_cap/Makefile
-@@ -10,6 +10,9 @@ install: all
- 	mkdir -p -m 0755 $(FAKEROOT)$(LIBDIR)/security
- 	install -m 0755 pam_cap.so $(FAKEROOT)$(LIBDIR)/security
+ PSXMAGICOBJ=psx_magic.o
  
++# hardening=+all adds this universally, but we don't want this for the lib
 +CFLAGS  := $(filter-out -fPIE,$(CFLAGS))
 +LDFLAGS := $(filter-out -fPIE,$(filter-out -pie,$(LDFLAGS)))
 +
- # Note (as the author of much of the Linux-PAM library, I am confident
- # that this next line does *not* require -lpam on it.) If you think it
- # does, *verify that it does*, and if you observe that it fails as
+ # Always build libcap sources this way:
+ CFLAGS += -fPIC
+ 
+Index: libcap2/pam_cap/Makefile
+===================================================================
+--- libcap2.orig/pam_cap/Makefile
++++ libcap2/pam_cap/Makefile
+@@ -3,6 +3,10 @@
+ topdir=$(shell pwd)/..
+ include ../Make.Rules
+ 
++# hardening=+all adds this universally, but we don't want this for the module
++CFLAGS  := $(filter-out -fPIE,$(CFLAGS))
++LDFLAGS := $(filter-out -fPIE,$(filter-out -pie,$(LDFLAGS)))
++
+ # Always build pam_cap sources this way:
+ CFLAGS += -fPIC
+ 
