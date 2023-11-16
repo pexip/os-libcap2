@@ -1,3 +1,9 @@
+libcap2 (1:2.66-4pexip1) pexip-bookworm; urgency=medium
+
+  * Initial bookworm build
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Thu, 16 Nov 2023 10:05:47 +0000
+
 libcap2 (1:2.66-4) unstable; urgency=medium
 
   * Apply upstream patches for CVE-2023-2602, CVE-2023-2603
