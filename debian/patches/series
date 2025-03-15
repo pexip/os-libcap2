@@ -2,3 +2,5 @@ Hide-private-symbols.patch
 Filter-out-PIE-flags-when-building-shared-objects.patch
 Correct-the-check-of-pthread_create-s-return-value.patch
 Large-strings-can-confuse-libcap-s-internal-strdup-code.patch
+pam_cap-Fix-potential-configuration-parsing-error.patch
+Add-a-test-for-bad-group-prefix.patch

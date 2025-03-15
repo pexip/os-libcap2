@@ -1,3 +1,11 @@
+libcap2 (1:2.66-4+deb12u1) bookworm; urgency=medium
+
+  * Cherry-pick patch fixing CVE-2025-1390.
+    In /etc/security/capability.conf, configurations not starting with "@"
+    were incorrectly recognized as group names. (Closes: #1098318)
+
+ -- Christian Kastner <ckk@debian.org>  Sat, 15 Mar 2025 13:43:35 +0100
+
 libcap2 (1:2.66-4) unstable; urgency=medium
 
   * Apply upstream patches for CVE-2023-2602, CVE-2023-2603
