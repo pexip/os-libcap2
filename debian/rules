@@ -25,6 +25,7 @@ endif
 
 # See pam_cap/Makefile for FORCELINKPAM
 MAKE_ASSIGNMENTS = \
+	prefix=/usr \
 	FORCELINKPAM=yes \
 	GOLANG=no
 
@@ -34,6 +35,12 @@ MAKE_ASSIGNMENTS = \
 
 override_dh_auto_clean:
 	dh_auto_clean -- $(MAKE_ASSIGNMENTS)
+	# The Golang build system does not appear to fully honor -B, so we need
+	# two cleans
+	dh_auto_clean -B_build -O--buildsystem=golang
+	dh_auto_clean O--buildsystem=golang
+	# Undo change of lookup (see override_dh_auto_build)
+	sed -i -e 's,\./tcapsh-static,../progs/tcapsh-static,g' tests/libcap_launch_test.c
 
 
 override_dh_auto_build:
@@ -75,7 +82,7 @@ override_dh_auto_install:
 	# (avoiding it and going through LD_LIBRARY_PATH didn't work in all
 	# cases)
 	# List is identical to build above, minus noop (no RPATH)
-	cd tests && chrpath -d \
+	cd tests && patchelf --remove-rpath \
 		psx_test \
 		libcap_psx_test \
 		uns_test \
@@ -89,19 +96,6 @@ override_dh_auto_install:
 		PKGCONFIGDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig \
 		RAISE_SETFCAP=no
 
-	# libcap-dev:
-	#   Move the development files from lib/ to usr/lib. dh_link will
-	#   later correct the link for us (from relative to absolute).
-	cd debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH) && \
-		mv    ../../../lib/$(DEB_HOST_MULTIARCH)/*.a . && \
-		ln -s ../../../lib/$(DEB_HOST_MULTIARCH)/libcap.so.*.* libcap.so && \
-		ln -s ../../../lib/$(DEB_HOST_MULTIARCH)/libpsx.so.*.* libpsx.so
-	sed -i -e 's@^libdir=.*@libdir=/usr/lib/$(DEB_HOST_MULTIARCH)@' \
-		debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig/*.pc
-	# We created the symlink ourselves
-	# Remove the build-generate one to silence --fail-missing
-	rm -f debian/tmp/lib/$(DEB_HOST_MULTIARCH)/*.so
-
 
 override_dh_auto_test:
 	dh_auto_test -- $(MAKE_ASSIGNMENTS)
@@ -111,3 +105,16 @@ override_dh_makeshlibs:
 	dh_makeshlibs -V'libcap2 (>= $(SHLIBS_MINVER))' -plibcap2 \
 		--add-udeb=libcap2-udeb -- -c4
 	dh_makeshlibs --remaining-packages -- -c4
+
+export DH_GOLANG_BUILDPKG := \
+	kernel.org/pub/linux/libs/security/libcap/cap \
+	kernel.org/pub/linux/libs/security/libcap/psx
+
+execute_after_dh_auto_configure:
+	dh_auto_configure -B_build -O--buildsystem=golang
+
+execute_after_dh_auto_install:
+	dh_auto_install -B_build -O--buildsystem=golang
+
+execute_after_dh_auto_build:
+	dh_auto_build -B_build -O--buildsystem=golang

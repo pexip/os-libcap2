@@ -2,16 +2,19 @@ Source: libcap2
 Section: libs
 Priority: optional
 Maintainer: Christian Kastner <ckk@debian.org>
-Build-Depends: chrpath,
+Build-Depends: patchelf,
                debhelper-compat (= 13),
+               dh-golang,
+               golang-any,
                gperf (>= 3.1),
                indent,
                libpam0g-dev,
 Rules-Requires-Root: no
-Standards-Version: 4.6.1
+Standards-Version: 4.7.0
 Homepage: https://sites.google.com/site/fullycapable/
 Vcs-Git: https://salsa.debian.org/debian/libcap2.git
 Vcs-Browser: https://salsa.debian.org/debian/libcap2
+XS-Go-Import-Path: kernel.org/pub/linux/libs/security/libcap
 
 Package: libcap2-bin
 Section: utils
@@ -82,3 +85,16 @@ Description: POSIX 1003.1e capabilities (library)
  powerful root privilege into a set of distinct privileges.
  .
  This is a minimal version, only for use in the installation system.
+
+Package: golang-kernel-pub-linux-libs-security-libcap-dev
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+Description: POSIX 1003.1e capabilities (Go library)
+ Libcap implements the user-space interfaces to the POSIX 1003.1e capabilities
+ available in Linux kernels. These capabilities are a partitioning of the all
+ powerful root privilege into a set of distinct privileges.
+ .
+ This package provides the kernel.org/pub/linux/libs/security/libcap/cap and
+ kernel.org/pub/linux/libs/security/libcap/psx Go libraries.
