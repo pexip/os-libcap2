@@ -17,7 +17,8 @@ static __u8 __libcap_mutex;
  */
 static cap_value_t _cap_max_bits;
 
-__attribute__((constructor (300))) void _libcap_initialize()
+__attribute__((visibility ("hidden")))
+__attribute__((constructor (300))) void _libcap_initialize(void)
 {
     int errno_saved = errno;
     _cap_mu_lock(&__libcap_mutex);
@@ -95,7 +96,7 @@ cap_t cap_init(void)
  * This is an internal library function to duplicate a string and
  * tag the result as something cap_free can handle.
  */
-char *_libcap_strdup(const char *old)
+__attribute__((visibility ("hidden"))) char *_libcap_strdup(const char *old)
 {
     struct _cap_alloc_s *header;
     char *raw_data;
@@ -105,14 +106,16 @@ char *_libcap_strdup(const char *old)
 	errno = EINVAL;
 	return NULL;
     }
-    len = strlen(old) + 1 + 2*sizeof(__u32);
-    if (len < sizeof(struct _cap_alloc_s)) {
-	len = sizeof(struct _cap_alloc_s);
-    }
-    if ((len & 0xffffffff) != len) {
+
+    len = strlen(old);
+    if ((len & 0x3fffffff) != len) {
 	_cap_debug("len is too long for libcap to manage");
 	errno = EINVAL;
 	return NULL;
+    }
+    len += 1 + 2*sizeof(__u32);
+    if (len < sizeof(struct _cap_alloc_s)) {
+	len = sizeof(struct _cap_alloc_s);
     }
 
     raw_data = calloc(1, len);

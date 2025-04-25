@@ -12,6 +12,7 @@
 #endif
 
 #include <errno.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <limits.h>
 #include <pwd.h>
@@ -22,8 +23,8 @@
 #include <syslog.h>
 #include <sys/capability.h>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
-#include <linux/limits.h>
 
 #include <security/pam_modules.h>
 #include <security/_pam_macros.h>
@@ -106,6 +107,27 @@ static char *read_capabilities_for_user(const char *user, const char *source)
 	D(("failed to open capability file"));
 	goto defer;
     }
+    /*
+     * In all cases other than "/dev/null", the config file should not
+     * be world writable. We do not check for ownership limitations or
+     * group write restrictions as these represent legitimate local
+     * administration choices. Especially in a system operating in
+     * CAP_MODE_PURE1E.
+     */
+    if (strcmp(source, "/dev/null") != 0) {
+	struct stat sb;
+	D(("validate filehandle [for opened %s] does not point to a world"
+	   " writable file", source));
+	if (fstat(fileno(cap_file), &sb) != 0) {
+	    D(("unable to fstat config file: %d", errno));
+	    goto close_out_file;
+	}
+	if ((sb.st_mode & S_IWOTH) != 0) {
+	    D(("open failed [%s] is world writable test: security hole",
+	       source));
+	    goto close_out_file;
+	}
+    }
 
     int found_one = 0;
     while (!found_one &&
@@ -143,11 +165,13 @@ static char *read_capabilities_for_user(const char *user, const char *source)
 
 	    if (line[0] != '@') {
 		D(("user [%s] is not [%s] - skipping", user, line));
+		continue;
 	    }
 
 	    int i;
 	    for (i=0; i < groups_n; i++) {
-		if (!strcmp(groups[i], line+1)) {
+		const char *g = groups[i];
+		if (g != NULL && !strcmp(g, line+1)) {
 		    D(("user group matched [%s]", line));
 		    found_one = 1;
 		    break;
@@ -167,6 +191,7 @@ static char *read_capabilities_for_user(const char *user, const char *source)
 	line = NULL;
     }
 
+close_out_file:
     fclose(cap_file);
 
 defer:
@@ -175,7 +200,7 @@ defer:
     int i;
     for (i = 0; i < groups_n; i++) {
 	char *g = groups[i];
-	_pam_overwrite(g);
+	memset(g, 0, strlen(g));
 	_pam_drop(g);
     }
     if (groups != NULL) {
@@ -259,6 +284,9 @@ static int set_capabilities(struct pam_cap_s *cs)
 	    goto cleanup_cap_s;
 	}
 	conf_caps = strdup(cs->fallback);
+	if (conf_caps == NULL) {
+	    goto cleanup_cap_s;
+	}
 	D(("user [%s] received fallback caps [%s]", cs->user, conf_caps));
     }
 
@@ -290,7 +318,12 @@ static int set_capabilities(struct pam_cap_s *cs)
 
     if (cs->defer) {
 	D(("configured to delay applying IAB"));
-	pam_set_data(cs->pamh, "pam_cap_iab", iab, iab_apply);
+	int ret = pam_set_data(cs->pamh, "pam_cap_iab", iab, iab_apply);
+	if (ret != PAM_SUCCESS) {
+	    D(("unable to cache capabilities for delayed setting: %d", ret));
+	    /* since ok=0, the module will return PAM_IGNORE */
+	    cap_free(iab);
+	}
 	iab = NULL;
     } else if (!cap_iab_set_proc(iab)) {
 	D(("able to set the IAB [%s] value", conf_caps));
@@ -390,7 +423,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     }
 
     if (retval != PAM_SUCCESS) {
-	D(("pam_get_user failed: %s", pam_strerror(pamh, retval)));
+	D(("pam_get_user failed: pam error=%d", retval));
 	memset(&pcs, 0, sizeof(pcs));
 	return PAM_AUTH_ERR;
     }
@@ -411,7 +444,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	   small race associated with a redundant read of the
 	   config. */
 
-	_pam_overwrite(conf_caps);
+	memset(conf_caps, 0, strlen(conf_caps));
 	_pam_drop(conf_caps);
 
 	return PAM_SUCCESS;

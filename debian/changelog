@@ -1,3 +1,121 @@
+libcap2 (1:2.75-6) unstable; urgency=medium
+
+  * Add cleaning for Golang build
+  * Switch from chrpath to patchelf
+
+ -- Christian Kastner <ckk@debian.org>  Fri, 11 Apr 2025 20:52:04 +0200
+
+libcap2 (1:2.75-5) unstable; urgency=medium
+
+  * Upload to unstable
+  * Cherry-pick a signal handler API fix
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 09 Apr 2025 23:38:14 +0200
+
+libcap2 (1:2.75-5~exp1) experimental; urgency=medium
+
+  [ Simon Josefsson ]
+  * Add Go package.
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 07 Apr 2025 13:14:39 +0200
+
+libcap2 (1:2.75-4) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Christian Kastner <ckk@debian.org>  Tue, 25 Mar 2025 21:24:16 +0100
+
+libcap2 (1:2.75-4~exp1) experimental; urgency=medium
+
+  * Cherry-pick upstream patches attempting FTBFS fix on debian-ports
+   - Add new symbol to symbols file
+  * Re-enable executable library tests
+
+ -- Christian Kastner <ckk@debian.org>  Sun, 23 Mar 2025 19:30:49 +0100
+
+libcap2 (1:2.75-3) unstable; urgency=medium
+
+  * Temporarily skip tests on mips64el, powerpc.
+    Affected by #1089636 in glibc.
+
+ -- Christian Kastner <ckk@debian.org>  Thu, 20 Mar 2025 23:46:07 +0100
+
+libcap2 (1:2.75-2) unstable; urgency=medium
+
+  * Skip executable shared library test.
+    This segfaults on mips64el and powerpc. Since this functionality is not
+    enabled anyway, skip the test for now until the root cause has been
+    identified and resolved. (Closes: #1089636)
+
+ -- Christian Kastner <ckk@debian.org>  Thu, 13 Mar 2025 15:36:17 +0100
+
+libcap2 (1:2.75-1) unstable; urgency=medium
+
+  [ Otto Kekäläinen ]
+  * Salsa CI: Test for missing Breaks and Replaces.
+
+  [ Christian Kastner ]
+  * New upstream version 2.75
+  * Refresh patches
+  * gbp.conf Add upstream-signatures=on
+
+ -- Christian Kastner <ckk@debian.org>  Fri, 07 Mar 2025 10:05:09 +0100
+
+libcap2 (1:2.73-4) unstable; urgency=medium
+
+  * Cherry-pick patch fixing CVE-2025-1390.
+    In /etc/security/capability.conf, configurations not starting with "@"
+    were incorrectly recognized as group names. (Closes: #1098318)
+  * Fix bug number in previous changelog entry
+
+ -- Christian Kastner <ckk@debian.org>  Wed, 19 Feb 2025 23:17:43 +0100
+
+libcap2 (1:2.73-3) unstable; urgency=medium
+
+  [ Christian Kastner ]
+  * libcap2-bin.install: Skip pam_cap.8
+    As upstream also ships this file now, installing all of man8 also
+    installed pam_cap.8, whereas we were shipping our own version in
+    libpam-cap. Our own version was dropped, and libpam-cap will ship
+    upstream's version instead. (Closes: #1096207, #1098209)
+  * Bump Standards-Version to 4.7.0 (no changes needed)
+
+  [ Otto Kekäläinen ]
+  * Enable Salsa CI using default template.
+    Keep BLHC disabled so that the pipeline can pass. The purpose it so catch
+    regressions, so the pipeline should be green on mainline.
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 17 Feb 2025 21:52:02 +0100
+
+libcap2 (1:2.73-2) unstable; urgency=medium
+
+  * symbols: Drop accidentally included Debian revision
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 17 Feb 2025 11:02:53 +0100
+
+libcap2 (1:2.73-1) unstable; urgency=medium
+
+  * New upstream version 2.73
+    - Refresh patches
+  * Use capability.conf.5 now provided by upstream
+  * Update symbols file
+    This drops internal symbols but also one symbol that was exported, but
+    clearly not intended to be.
+  * d/rules: Undo file change in clean step.
+    Resolves a FTBFS twice in a row.
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 17 Feb 2025 10:46:10 +0100
+
+libcap2 (1:2.66-5) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  *  Move files to /usr for DEP17. (Closes: #1060140)
+
+  [ Christian Kastner ]
+  * Add Skip-git-if-not-installed.patch (Closes: #1046986)
+
+ -- Christian Kastner <ckk@debian.org>  Tue, 06 Feb 2024 20:16:09 +0100
+
 libcap2 (1:2.66-4+pexip24u3) pexip-bookworm; urgency=medium
 
   * New versioning scheme

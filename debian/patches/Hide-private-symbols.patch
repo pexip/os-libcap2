@@ -12,13 +12,13 @@ Bug-Debian: https://bugs.debian.org/793311
 Bug-Debian: https://bugs.debian.org/869588
 Last-Update: 2022-03-04
 ---
- libcap/Makefile | 2 +-
+ libcap/cap_names.header | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: libcap2/libcap/cap_names.header
-===================================================================
---- libcap2.orig/libcap/cap_names.header
-+++ libcap2/libcap/cap_names.header
+diff --git a/libcap/cap_names.header b/libcap/cap_names.header
+index 8d64f64..ba4b4ce 100644
+--- a/libcap/cap_names.header
++++ b/libcap/cap_names.header
 @@ -1,5 +1,5 @@
  struct __cap_token_s { const char *name; int index; };
  %{
