@@ -29,7 +29,7 @@ index="${outdir}/index.md"
 function do_page () {
     m="$1"
     base="${m%.*}"
-    sect="${m#*.}"
+    sect="${m##*.}"
     output="${base}-${sect}.md"
 
     echo "converting ${m}" 1>&2
@@ -43,18 +43,26 @@ function do_page () {
 	return
     fi
 
-    pandoc -f man -t markdown < "${m}" | sed 's/\*\*\([^*]\+\)\*\*(\([138]\+\))/[\1(\2)](\1-\2.md)/g' > "${outdir}/${base}-${sect}.md"
+    pandoc -f man -t markdown < "${m}" | sed 's/\*\*\([^*]\+\)\*\*(\([1358]\+\))/[\1(\2)](\1-\2.md)/g' > "${outdir}/${base}-${sect}.md"
     echo "* [${base}(${sect})](${base}-${sect}.md)" >> "${index}"
 }
 
 cat > "${index}" <<EOF
 # Manpages for libcap and libpsx
 
+EOF
+
+if [[ -f "local-md.preamble" ]]; then
+    cat "local-md.preamble" >> "${index}"
+fi
+
+cat >> "${index}" <<EOF
+
 ## Individual reference pages
 EOF
 
 # Assumes the m's are listed alphabetically.
-for n in 1 3 8 ; do
+for n in 1 3 5 8 ; do
 	cat >> "${index}" <<EOF
 
 ### Section ${n}
@@ -68,6 +76,14 @@ done
 cat >> "${index}" <<EOF
 
 ## More information
+
+EOF
+
+if [[ -f "local-md.postscript" ]]; then
+    cat "local-md.postscript" >> "${index}"
+fi
+
+cat >> "${index}" <<EOF
 
 For further information, see the
 [FullyCapable](https://sites.google.com/site/fullycapable/) homepage

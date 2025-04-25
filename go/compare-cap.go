@@ -48,7 +48,7 @@ func tryFileCaps() {
 	// Failing attempt to remove capabilities.
 	var empty *cap.Set
 	if err := empty.SetFile(os.Args[0]); err != syscall.EPERM {
-		log.Fatalf("failed to be blocked from removing filecaps: %v", err)
+		log.Fatalf("failed to be blocked from removing filecaps (with=%q): %v", cap.GetProc(), err)
 	}
 
 	// The privilege we want (in the case we are root, we need the
@@ -96,7 +96,7 @@ func tryFileCaps() {
 
 	// Failing attempt to remove capabilities.
 	if err := empty.SetFd(f); err != syscall.EPERM {
-		log.Fatalf("failed to be blocked from fremoving filecaps: %v", err)
+		log.Fatalf("failed to be blocked from removing filecaps (w/ %q): %v", cap.GetProc(), err)
 	}
 
 	// For the next section, we won't set the effective bit on the file.
@@ -116,16 +116,18 @@ func tryFileCaps() {
 	if err := want.SetFd(f); err != nil {
 		log.Fatalf("failed to fset file capability: %v", err)
 	}
-	if err := saved.SetProc(); err != nil {
-		log.Fatalf("failed to lower effective capability: %v", err)
-	}
-	// End of critical section.
-
 	if got, err := cap.GetFd(f); err != nil {
 		log.Fatalf("failed to fread caps: %v", err)
 	} else if is, was := got.String(), want.String(); is != was {
 		log.Fatalf("fread file caps do not match desired: got=%q want=%q", is, was)
 	}
+	if err := empty.SetFd(f); err != nil && err != syscall.ENODATA {
+		log.Fatalf("blocked from cleanup fremoving filecaps: %v", err)
+	}
+	if err := saved.SetProc(); err != nil {
+		log.Fatalf("failed to lower effective capability: %v", err)
+	}
+	// End of critical section.
 }
 
 // tryProcCaps performs a set of convenience functions and compares
