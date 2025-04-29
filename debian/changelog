@@ -1,3 +1,9 @@
+libcap2 (1:2.75-6+pexip25u1) pexip-trixie; urgency=medium
+
+  * Initial trixie build
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Tue, 29 Apr 2025 22:35:43 +0100
+
 libcap2 (1:2.75-6) unstable; urgency=medium
 
   * Add cleaning for Golang build
