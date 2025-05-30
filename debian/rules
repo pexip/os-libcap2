@@ -111,3 +111,6 @@ override_dh_makeshlibs:
 	dh_makeshlibs -V'libcap2 (>= $(SHLIBS_MINVER))' -plibcap2 \
 		--add-udeb=libcap2-udeb -- -c4
 	dh_makeshlibs --remaining-packages -- -c4
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vmisc:Built-Using="$(shell dpkg-query -f '$${source:Package} (= $${source:Version})' -W libc-dev-bin)"

@@ -45,6 +45,7 @@ Package: libcap-dev
 Section: libdevel
 Architecture: linux-any
 Multi-Arch: same
+Built-Using: ${misc:Built-Using}
 Depends: libcap2 (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
 Suggests: manpages-dev
 Provides: libcap2-dev
