@@ -37,8 +37,10 @@ override_dh_auto_clean:
 	dh_auto_clean -- $(MAKE_ASSIGNMENTS)
 	# The Golang build system does not appear to fully honor -B, so we need
 	# two cleans
-	dh_auto_clean -B_build -O--buildsystem=golang
-	dh_auto_clean O--buildsystem=golang
+	set -e; if test -d _build; then \
+		dh_auto_clean -B_build -O--buildsystem=golang; \
+		dh_auto_clean -O--buildsystem=golang; \
+	fi
 	# Undo change of lookup (see override_dh_auto_build)
 	sed -i -e 's,\./tcapsh-static,../progs/tcapsh-static,g' tests/libcap_launch_test.c
 
@@ -78,43 +80,50 @@ override_dh_installdirs:
 
 
 override_dh_auto_install:
-	# Unfortunately, RPATH seems to be needed for the build-time tests
-	# (avoiding it and going through LD_LIBRARY_PATH didn't work in all
-	# cases)
-	# List is identical to build above, minus noop (no RPATH)
-	cd tests && patchelf --remove-rpath \
-		psx_test \
-		libcap_psx_test \
-		uns_test \
-		libcap_launch_test \
-		libcap_psx_launch_test \
-		exploit \
-		noexploit
 	dh_auto_install -- \
 		$(MAKE_ASSIGNMENTS) \
 		lib=lib/$(DEB_HOST_MULTIARCH) \
 		PKGCONFIGDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/pkgconfig \
 		RAISE_SETFCAP=no
 
+execute_after_dh_install-arch:
+	# Unfortunately, RPATH seems to be needed for the build-time tests
+	# (avoiding it and going through LD_LIBRARY_PATH didn't work in all
+	# cases).
+	# Also, we need to operate on the install result, as the original
+	# executable may still be used by a running test process.
+	# .
+	# List is identical to build above, minus noop (no RPATH)
+	cd debian/libcap-dev/usr/lib/$(DEB_HOST_MULTIARCH)/libcap2/tests  && \
+		patchelf --remove-rpath \
+			psx_test \
+			libcap_psx_test \
+			uns_test \
+			libcap_launch_test \
+			libcap_psx_launch_test \
+			exploit \
+			noexploit
 
 override_dh_auto_test:
 	dh_auto_test -- $(MAKE_ASSIGNMENTS)
-
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V'libcap2 (>= $(SHLIBS_MINVER))' -plibcap2 \
 		--add-udeb=libcap2-udeb -- -c4
 	dh_makeshlibs --remaining-packages -- -c4
 
+override_dh_gencontrol:
+	dh_gencontrol -- -Vmisc:Built-Using="$(shell dpkg-query -f '$${source:Package} (= $${source:Version})' -W libc-dev-bin)"
+
 export DH_GOLANG_BUILDPKG := \
 	kernel.org/pub/linux/libs/security/libcap/cap \
 	kernel.org/pub/linux/libs/security/libcap/psx
 
-execute_after_dh_auto_configure:
+execute_after_dh_auto_configure-indep:
 	dh_auto_configure -B_build -O--buildsystem=golang
 
-execute_after_dh_auto_install:
+execute_after_dh_auto_install-indep:
 	dh_auto_install -B_build -O--buildsystem=golang
 
-execute_after_dh_auto_build:
+execute_after_dh_auto_build-indep:
 	dh_auto_build -B_build -O--buildsystem=golang

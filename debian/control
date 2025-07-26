@@ -4,11 +4,11 @@ Priority: optional
 Maintainer: Christian Kastner <ckk@debian.org>
 Build-Depends: patchelf,
                debhelper-compat (= 13),
-               dh-golang,
-               golang-any,
                gperf (>= 3.1),
                indent,
                libpam0g-dev,
+Build-Depends-Indep: dh-golang,
+                     golang-any,
 Rules-Requires-Root: no
 Standards-Version: 4.7.0
 Homepage: https://sites.google.com/site/fullycapable/
@@ -48,6 +48,7 @@ Package: libcap-dev
 Section: libdevel
 Architecture: linux-any
 Multi-Arch: same
+Built-Using: ${misc:Built-Using}
 Depends: libcap2 (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
 Suggests: manpages-dev
 Provides: libcap2-dev

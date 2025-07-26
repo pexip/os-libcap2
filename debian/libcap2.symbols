@@ -1,6 +1,6 @@
 libcap.so.2 libcap2 #MINVER#
 * Build-Depends-Package: libcap-dev
- _IO_stdin_used@Base 1:2.75
+ (arch=gnu-any-any)_IO_stdin_used@Base 1:2.75
  __execable_dl_loader@Base 1:2.63
  cap_clear@Base 1:2.10
  cap_clear_flag@Base 1:2.10
