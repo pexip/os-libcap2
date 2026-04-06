@@ -1,3 +1,9 @@
+libcap2 (1:2.75-10+deb13u1) trixie; urgency=medium
+
+  * Add patch fixing CVE-2026-4878 (TOCTOU race condition)
+
+ -- Christian Kastner <ckk@debian.org>  Mon, 06 Apr 2026 22:11:41 +0200
+
 libcap2 (1:2.75-10) unstable; urgency=medium
 
   * d/rules: Fix typo in override_dh_auto_clean
